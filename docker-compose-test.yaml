@@ -1,0 +1,14 @@
+---
+
+services:
+  nginx-test:
+    image: nginx:local
+    build:
+      context: .
+    volumes:
+      - ./lib/resty/solr:/usr/local/openresty/site/lualib/resty/solr
+      - ./:/app
+    environment:
+      - TEST_NGINX_BINARY=openresty
+    working_dir: /app
+    command: make test

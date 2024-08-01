@@ -7,7 +7,6 @@ local mt = {
 local cjson = require("cjson");
 
 local table_insert = table.insert
-local table_getn = table.getn
 local table_concat = table.concat
 local string_gsub = string.gsub
 
@@ -39,7 +38,7 @@ function _M:add_json(key, val)
 end
 
 function _M:add_array(arr)
-	for i = 0, table_getn(arr), 1 do
+	for i = 0, #arr, 1 do
 		self:add_str(arr[i])
 	end
 end

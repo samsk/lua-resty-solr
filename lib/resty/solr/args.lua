@@ -423,14 +423,6 @@ function _M:output(out)
 	return self
 end
 
-----
--- wt=xml
-function _M:output_json(enabled)
-	if enabled then
-		self.args['wt'] = 'xml'
-	end
-	return self
-end
 
 ----
 -- wt=json
@@ -442,29 +434,49 @@ function _M:output_json(enabled)
 	return self
 end
 
+--- iterate over table sorted by keys
+local function pairsByKeys (t, f)
+    local a = {}
+    for n in pairs(t) do table.insert(a, n) end
+    table.sort(a, f)
+    local i = 0      -- iterator variable
+    local iter = function ()   -- iterator function
+        i = i + 1
+        if a[i] == nil then return nil
+        else return a[i], t[a[i]]
+        end
+    end
+    return iter
+end
+
 ----
 -- build final arg string
-function _M:build()
-	local args = {}
+-- @param sort if true, build sorted args (needed for testing)
+function _M:build(sort)
 	local webargs = http_args.new()
 
-	for key, val in pairs(self.args) do
+	local iterPairs = pairs
+	if (sort) then
+		iterPairs = pairsByKeys
+	end
+
+	for key, val in iterPairs(self.args) do
 		if key == 'fqX' and type(val) == 'table' then
 			local vals = {}
 
 			for _, val1 in pairs(val) do
 				table_insert(vals, '(' .. val1 .. ')')
 			end
-			webargs.add(args, key, table_concat(vals, ' AND '))
+			webargs:add(key, table_concat(vals, ' AND '))
 		elseif type(val) == 'table' then
 			for _, val1 in pairs(val) do
-				webargs.add(args, key, val1)
+				webargs:add(key, val1)
 			end
 		else
-			webargs.add(args, key, val)
+			webargs:add(key, val)
 		end
 	end
-	return webargs.build(args)
+	return webargs:build()
 end
 
 return _M
