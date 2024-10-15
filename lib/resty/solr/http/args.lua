@@ -38,7 +38,7 @@ function _M:add_json(key, val)
 end
 
 function _M:add_array(arr)
-	for i = 0, #arr, 1 do
+	for i = 1, #arr, 1 do
 		self:add_str(arr[i])
 	end
 end

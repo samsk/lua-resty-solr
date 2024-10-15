@@ -50,8 +50,8 @@ configs:
                 :wildcard_query(ngx.var.arg_q)
                 :start(ngx.var.arg_start)
                 :output_json(ngx.var.arg_o == 'json')
-                :filter('arg_fy', '{!tag=YEAR}year', tonumber(ngx.var.arg_fy))
-                :filter('arg_fm', '{!tag=MONTH}month', tonumber(ngx.var.arg_fm))
+                :filter_raw('arg_fy', '{!tag=YEAR}year', tonumber(ngx.var.arg_fy))
+                :filter_raw('arg_fm', '{!tag=MONTH}month', tonumber(ngx.var.arg_fm))
                 :build(1) .. '');
             }
           }
@@ -65,8 +65,8 @@ configs:
                 :wildcard_query(ngx.var.arg_q)
                 :start(ngx.var.arg_start)
                 :output_json(ngx.var.arg_o == 'json')
-                :filter('arg_fy', '{!tag=YEAR}year', tonumber(ngx.var.arg_fy))
-                :filter('arg_fm', '{!tag=MONTH}month', tonumber(ngx.var.arg_fm))
+                :filter_raw('arg_fy', '{!tag=YEAR}year', tonumber(ngx.var.arg_fy))
+                :filter_raw('arg_fm', '{!tag=MONTH}month', tonumber(ngx.var.arg_fm))
                 :build();
             }
           }

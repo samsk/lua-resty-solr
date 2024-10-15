@@ -1,5 +1,5 @@
-package = "lua-resty-rols"
-version = "0.2.0"
+package = "lua-resty-solr"
+version = "0.2.0-1"
 source = {
   url = "https://github.com/samsk/lua-resty-solr",
   tag = "0.0.0"
@@ -22,8 +22,10 @@ dependencies = {
 build = {
   type    = "builtin",
   modules = {
-    ["resty.solr"]	= "lib/resty/solr.lua"
-    ["resty.solr.args"]	= "lib/resty/solr/args.lua"
-    ["resty.solr.http.args"]	= "lib/resty/solr/http/args.lua"
+    ["resty.solr"]	= "lib/resty/solr.lua",
+    ["resty.solr.args"]	= "lib/resty/solr/args.lua",
+    ["resty.solr.args.advanced"]	= "lib/resty/solr/args/advanced.lua",
+    ["resty.solr.sort"]	= "lib/resty/solr/sort.lua",
+    ["resty.solr.http.args"]	= "lib/resty/solr/http/args.lua",
   }
 }
