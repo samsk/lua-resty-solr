@@ -59,7 +59,8 @@ end
 
 -- match int number
 local function _intnumber(v)
-    return tonumber(v) | 0      -- force integer, alternative to math.tointeger
+    -- return tonumber(v) | 0      -- force integer, alternative to math.tointeger
+    return math.tointeger(tonumber(v))
 end
 
 -- match float number
