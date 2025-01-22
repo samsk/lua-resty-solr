@@ -10,14 +10,14 @@ __DATA__
 
 --- http_config
     init_worker_by_lua_block {
-	solr_args = require "resty.solr.args"
+	solr_args = require "resty.solr.args.advanced"
     }
 
 --- config
     location /search {
 	content_by_lua_block {
 		local args = solr_args.new()
-			:wildcard_query('arg_q', ngx.var.arg_q)
+			:query('arg_q', ngx.var.arg_q)
 			:start(ngx.var.arg_start)
 			:output_json(ngx.var.arg_o == 'json')
 			:filter_raw('arg_fy', '{!tag=YEAR}year', tonumber(ngx.var.arg_fy))
@@ -36,4 +36,4 @@ __DATA__
 --- request
 GET /search?q=x
 --- response_body
-arg_q=x&q=x*&start=0&wt=xml
+arg_q=x&q=x&start=0&wt=xml

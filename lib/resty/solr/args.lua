@@ -8,7 +8,8 @@ local string_sub = string.sub
 local table_insert = table.insert
 local table_concat = table.concat
 
-local cjson_flat = require("cjson").decode_max_depth(1)
+local cjson_flat = require("cjson")
+cjson_flat.decode_max_depth(1)
 local http_args = require "resty.solr.http.args"
 
 local function _deepcopy(obj, seen)
@@ -46,6 +47,7 @@ function _M:reset()
 		fq = {},
 		wt = 'xml',
 	}
+	self.arg_q = 'q'
 	return self
 end
 
@@ -98,9 +100,9 @@ function _M:query(arg, value, def)
 		if arg ~= nil then
 			self.args[arg] = value
 		end
-		return self:arg(self.arg_q, value, def)
+		return self:arg(self.arg_q, value)
 	elseif def ~= nil then
-		return self:arg(self.arg_q, value, def)
+		return self:arg(self.arg_q, def)
 	end
 	return self
 end
@@ -173,7 +175,7 @@ end
 
 ----
 -- sort=
-function _M:sort(value)
+function _M:sort_by(value)
 	return self:arg('sort', value)
 end
 

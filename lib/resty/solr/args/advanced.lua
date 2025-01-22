@@ -60,7 +60,7 @@ end
 -- match int number
 local function _intnumber(v)
     -- return tonumber(v) | 0      -- force integer, alternative to math.tointeger
-    return math.tointeger(tonumber(v))
+    return math.floor(tonumber(v))
 end
 
 -- match float number
@@ -73,7 +73,16 @@ end
 -- @param opts.sort - sort options (see solr.sort)
 function _M.new(opts)
 	local object = solr_args.new()
-	object.sort = solr_sort:new(opts.sort or {})
+
+	local sort_fields = {}
+	local sort_opts = {}
+	if opts ~= nil then
+		if opts.sort ~= nil then
+			sort_fields = opts.sort.fields or {}
+			sort_config = opts.sort.opts or {}
+		end
+	end
+	object.sort = solr_sort.new(sort_fields, sort_opts)
 	return setmetatable(object, mt)
 end
 
@@ -137,10 +146,16 @@ function _M:filter_any_range(arg, fq, valueFrom, valueTo, options, cb)
 	local filter = nil
 	local lowerBound = '['
 	local upperBound = ']'
-	local argPrefix = options.argPrefix or ARG_RANGE
+	local argPrefix = (options ~= nil and options.argPrefix) or ARG_RANGE
 
-    valueFrom = cb(valueFrom)
-    valueTo = cb(valueTo)
+	if cb ~= nil then
+		if valueFrom ~= nil then
+			valueFrom = cb(valueFrom)
+		end
+		if valueTo ~= nil then
+			valueTo = cb(valueTo)
+		end
+	end
 
 	if options ~= nil and options.lowerExclusive ~= nil
 				and options.lowerExclusive == 1 then
@@ -279,16 +294,16 @@ function _M:filter_hour_from(arg, fq, value)
 	return self
 end
 
--- override sort
-function _M:sort(arg, value)
-	local sort, sort_fields = solr_sort:build(value)
-    return self:sort_string(arg, sort, sort_fields)
+-- override sort_by
+function _M:sort_by(value)
+	local sort, sort_fields = self.sort:build(value)
+	return self:sort_string('sort', sort, sort_fields)
 end
 
 -- sort by string expression
 function _M:sort_string(arg, value, arg_value)
-    self.args[ARG_MULTI .. arg] = arg_value or value
-    return _M.sort(self, ARG_NORM .. arg, value)
+	self.args[ARG_MULTI .. arg] = arg_value or value
+	return solr_args.sort_by(self, value)
 end
 
 return _M

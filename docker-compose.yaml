@@ -29,7 +29,7 @@ configs:
         sendfile on;
 
         init_worker_by_lua_block {
-          module = require("resty.solr.args")
+          module = require("resty.solr.args.advanced")
         }
 
         upstream upstream {
@@ -45,13 +45,17 @@ configs:
 
           location /test {
             content_by_lua_block {
-              ngx.say(module
-                .new()
-                :wildcard_query(ngx.var.arg_q)
+              ngx.say(module.new({
+                   sort = {
+                      fields = { 'fy', 'fm' },
+                   }
+                })
+                :wildcard_query('arg_q', ngx.var.arg_q)
                 :start(ngx.var.arg_start)
                 :output_json(ngx.var.arg_o == 'json')
                 :filter_raw('arg_fy', '{!tag=YEAR}year', tonumber(ngx.var.arg_fy))
                 :filter_raw('arg_fm', '{!tag=MONTH}month', tonumber(ngx.var.arg_fm))
+                :sort_by(ngx.var.arg_sort)
                 :build(1) .. '');
             }
           }

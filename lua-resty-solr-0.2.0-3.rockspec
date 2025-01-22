@@ -1,9 +1,9 @@
 package = "lua-resty-solr"
-version = "0.2.0-2"
+version = "0.2.0-3"
 source = {
-  url = "https://github.com/samsk/lua-resty-solr/archive/refs/tags/v0.2.0-beta2.tar.gz",
-  tag = "v0.2.0-beta1",
-  dir = "lua-resty-solr-0.2.0-beta2",
+  url = "https://github.com/samsk/lua-resty-solr/archive/refs/tags/v0.2.0-beta3.tar.gz",
+  tag = "v0.2.0-beta3",
+  dir = "lua-resty-solr-0.2.0-beta3",
 }
 description = {
   summary  = "SOLR api for OpenResty",
