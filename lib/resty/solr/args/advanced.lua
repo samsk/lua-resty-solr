@@ -22,30 +22,30 @@ end
 
 -- quote string value callback (with support for negative)
 local function _exact(v)
-    if string.sub(v, 1, 1) == '!' then
-        return 'NOT "' .. string.sub(v, 2) .. '"'
-    else
-        return '"' .. v .. '"'
-    end
+	if string.sub(v, 1, 1) == '!' then
+		return 'NOT "' .. string.sub(v, 2) .. '"'
+	else
+		return '"' .. v .. '"'
+	end
 end
 
 -- append wildcard to string value callback
 local function _wildcard(v)
-    return '*' .. v .. '*'
+	return '*' .. v .. '*'
 end
 
 -- match simple string map (VALUE1:[VALUE2])
 local function _exact_map(v)
-    if string.match(v, "^%w+$") then
-            return v .. '\\:' .. '*'
-    else
-            return '"' .. v .. '"'
-    end
+	if string.match(v, "^%w+$") then
+		return v .. '\\:' .. '*'
+	else
+		return '"' .. v .. '"'
+	end
 end
 
 -- match wildcard map ([VALUE1]:[VALUE2])
 local function _wildcard_map(v)
-    return string.gsub(string.gsub(string.gsub(string.gsub(v,
+	return string.gsub(string.gsub(string.gsub(string.gsub(v,
                 ':NULL', ':*')
                     , 'NULL:', '*:')
                         , ':', '\\:')
@@ -54,19 +54,79 @@ end
 
 -- match polygon
 local function _polygon(v)
-    return '"Intersects(POLYGON((' .. v .. ')))"'
+	return '"Intersects(POLYGON((' .. v .. ')))"'
+end
+
+----
+-- is value empty or is empty after callback
+-- @param v  value
+-- @param cb callback
+local function _isempty(v, cb)
+	return (v == nil) or (v == '')
+		or (cb ~= nil and cb(v) == nil)
+end
+
+---
+-- if value is empty return default
+local function _ifempty(v, def)
+	if _isempty(v) then
+		return def
+	end
+	return v
+end
+
+-- match any number
+local function _number(v)
+	if _isempty(v, tonumber) then
+		return nil
+	end
+	return tonumber(v)
 end
 
 -- match int number
 local function _intnumber(v)
-    -- return tonumber(v) | 0      -- force integer, alternative to math.tointeger
-    return math.floor(tonumber(v))
+	-- return tonumber(v) | 0      -- force integer, alt. to math.tointeger
+	if _isempty(v, tonumber) then
+		return nil
+	end
+	return math.floor(tonumber(v))
 end
 
 -- match float number
 local function _floatnumber(v)
-    return tonumber(v) + 0.0
+	if _isempty(v, tonumber) then
+		return nil
+	end
+	return tonumber(v) + 0.0
 end
+
+----
+-- setopts
+local function _setopts(object, opts)
+	local sort_fields = {}
+	local sort_opts = {}
+
+	if opts ~= nil then
+		-- sort = {
+		--	fields =
+		--	opts =
+		-- }
+		if opts.sort ~= nil then
+			sort_fields = opts.sort.fields or {}
+			sort_opts = opts.sort.opts or {}
+		end
+
+		-- defType =
+		if opts.defType ~= nil then
+			_M.defType(object, opts.defType)
+		end
+	end
+
+	object.sort = solr_sort.new(sort_fields, sort_opts)
+	return object
+end
+
+
 
 --- create new object
 -- @param opts - options
@@ -74,16 +134,15 @@ end
 function _M.new(opts)
 	local object = solr_args.new()
 
-	local sort_fields = {}
-	local sort_opts = {}
-	if opts ~= nil then
-		if opts.sort ~= nil then
-			sort_fields = opts.sort.fields or {}
-			sort_config = opts.sort.opts or {}
-		end
-	end
-	object.sort = solr_sort.new(sort_fields, sort_opts)
-	return setmetatable(object, mt)
+	object = setmetatable(object, mt)
+	_setopts(object, opts)
+	return object
+end
+
+----
+-- defType=
+function _M:defType(value)
+	return self:arg('defType', value)
 end
 
 ----
@@ -107,7 +166,7 @@ end
 ----
 -- fq=
 function _M:filter_number(arg, fq, value)
-	return self:filter_raw(ARG_NORM .. arg, fq, value, tonumber)
+	return self:filter_raw(ARG_NORM .. arg, fq, value, _number)
 end
 
 ----
@@ -146,15 +205,15 @@ function _M:filter_any_range(arg, fq, valueFrom, valueTo, options, cb)
 	local filter = nil
 	local lowerBound = '['
 	local upperBound = ']'
-	local argPrefix = (options ~= nil and options.argPrefix) or ARG_RANGE
+	local argPrefix = ARG_RANGE
+
+	if options ~= nil and options.argPrefix ~= nil then
+		argPrefix = options.argPrefix
+	end
 
 	if cb ~= nil then
-		if valueFrom ~= nil then
-			valueFrom = cb(valueFrom)
-		end
-		if valueTo ~= nil then
-			valueTo = cb(valueTo)
-		end
+		valueFrom = cb(valueFrom)
+		valueTo = cb(valueTo)
 	end
 
 	if options ~= nil and options.lowerExclusive ~= nil
@@ -167,12 +226,8 @@ function _M:filter_any_range(arg, fq, valueFrom, valueTo, options, cb)
 	end
 
 	if (valueFrom ~= nil or valueTo ~= nil) then
-		if valueFrom == nil or valueFrom == '' then
-			valueFrom = '*'
-		end
-		if valueTo == nil or valueTo == '' then
-			valueTo = '*'
-		end
+		valueFrom = _ifempty(valueFrom, '*')
+		valueTo   = _ifempty(valueTo, '*')
 
 		if valueTo ~= '*' or valueFrom ~= '*' then
 			self.args[argPrefix .. arg] = valueFrom .. ':' .. valueTo
@@ -225,9 +280,9 @@ end
 ----
 -- fq=
 function _M:filter_bool(arg, fq, value)
-	if value ~= nil and value == 1 then
+	if value ~= nil and (value == '1' or value == 1) then
 		return self:filter_raw(ARG_BOOL .. arg, fq, 1)
-	elseif value == 0 then
+	elseif (value == '0' or value == 0) then
 		return self:filter_raw(ARG_BOOL .. arg, fq, 0)
 	end
 	return self

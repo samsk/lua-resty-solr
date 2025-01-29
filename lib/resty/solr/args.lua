@@ -12,6 +12,7 @@ local cjson_flat = require("cjson")
 cjson_flat.decode_max_depth(1)
 local http_args = require "resty.solr.http.args"
 
+-- deepcopy
 local function _deepcopy(obj, seen)
 	if type(obj) ~= 'table' then
 		return obj
@@ -32,12 +33,43 @@ local function _deepcopy(obj, seen)
 	return res
 end
 
+-- _escape_str !TODO
 local function _escape_str(str)
 	return str
 end
 
-function _M.new()
-	local object = {}
+----
+-- is value empty
+-- @param v  value
+local function _isempty(v)
+	return (v == nil) or (v == '')
+end
+
+--- is unsafe query
+-- if contains query local params
+local function _isunsafe_query(q)
+	if not _isempty(q)
+			and (string_sub(q, 1, 2) == '{!'
+				or string_sub(q, 1, 4) == '%7B!'
+				or string_sub(q, 1, 4) == '%7b!') then
+		return true
+	end
+	return false
+end
+
+-- create new object
+-- @param opts options
+-- @param opts.protected	expose protected api (block solr local params in query)
+function _M.new(opts)
+	local object = {
+		protected = true
+	}
+	if opts ~= nil then
+		if opts.protected ~= nil then
+			object.protected = opts.protected
+		end
+	end
+
 	_M.reset(object)
 	return setmetatable(object, mt)
 end
@@ -46,6 +78,7 @@ function _M:reset()
 	self.args = {
 		fq = {},
 		wt = 'xml',
+		defType = 'dismax',
 	}
 	self.arg_q = 'q'
 	return self
@@ -94,9 +127,35 @@ function _M:result_field(field)
 end
 
 ----
+-- qf=
+function _M:query_fields(fields)
+	return self:arg('qf', table_concat(fields, ' '))
+end
+
+---
+--  check if query is safe
+function _M.is_query_safe(value)
+	return not _isunsafe_query(value)
+end
+
+---
+-- get query term, protected if unsafe
+-- @param value query term
+-- @returns modified query term, true if modified
+function _M:get_query_term(value)
+	if self.protected and _isunsafe_query(value) then
+		return '!' .. value, true
+	end
+	return value, false
+end
+
+----
 -- q=
+-- @note it is recommended to escape value with ngx.escape_uri()
 function _M:query(arg, value, def)
-	if value ~= nil and value ~= '' then
+	if not _isempty(value) then
+		value = self:get_query_term(value)
+
 		if arg ~= nil then
 			self.args[arg] = value
 		end
@@ -108,18 +167,11 @@ function _M:query(arg, value, def)
 end
 
 ----
--- q=
-function _M:any_query(arg, value, def)
-	if arg ~= nil then
-		self.args[arg] = value
-	end
-	return self:arg(self.arg_q, value, def)
-end
-
-----
 -- q=*
 function _M:wildcard_query(arg, value, wildprefix)
-	if value ~= nil then
+	if not _isempty(value) then
+		value = self:get_query_term(value)
+
 		if arg ~= nil then
 			self.args[arg] = value
 		end
@@ -142,6 +194,16 @@ function _M:quoted_query(arg, value)
 	end
 	return self:arg(self.arg_q, value)
 end
+
+----
+-- q=
+function _M:unsafe_query(arg, value, def)
+	if arg ~= nil then
+		self.args[arg] = value
+	end
+	return self:arg(self.arg_q, value, def)
+end
+
 
 ----
 -- q=field:*
@@ -185,7 +247,7 @@ local function _build_filter(fq, value, cb, op)
 	local retval_arg
 	local value_arg_complex = 0
 
-	if value ~= nil and value ~= '' then
+	if not _isempty(value) then
 		if type(value) ~= "table" then
 			value = { value }
 		end
