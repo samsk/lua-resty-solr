@@ -76,6 +76,7 @@ end
 
 function _M:reset()
 	self.args = {
+		q  = '*:*',
 		fq = {},
 		wt = 'xml',
 		defType = 'dismax',

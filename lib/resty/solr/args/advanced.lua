@@ -352,7 +352,7 @@ end
 -- override sort_by
 function _M:sort_by(value)
 	local sort, sort_fields = self.sort:build(value)
-	return self:sort_string('sort', sort, sort_fields)
+	return self:sort_string('sort', sort, value)
 end
 
 -- sort by string expression
